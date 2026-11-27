@@ -33,6 +33,9 @@ h1, h2, h3, p { margin: 0; }
 
 .app-shell { display: flex; min-height: 100vh; padding-top: env(safe-area-inset-top, 0px); }
 
+.topbar-heading { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.menu-button.icon-button, .sidebar-backdrop, .sidebar-close { display: none; }
+
 /* ------------------------------- sidebar ------------------------------- */
 
 .sidebar {
@@ -383,35 +386,71 @@ h1, h2, h3, p { margin: 0; }
 @media (max-width: 980px) {
   .app-shell { flex-direction: column; }
   .sidebar {
-    position: static;
-    width: 100%;
-    height: auto;
+    position: fixed;
+    z-index: 60;
+    top: 0;
+    left: 0;
+    width: min(300px, 86vw);
+    height: 100dvh;
     flex: none;
-    padding: calc(16px + env(safe-area-inset-top, 0px)) 18px 14px;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
+    padding: calc(20px + env(safe-area-inset-top, 0px)) 18px calc(20px + env(safe-area-inset-bottom, 0px));
+    border-right: 1px solid var(--line);
+    border-bottom: 0;
+    box-shadow: 14px 0 40px rgba(92, 62, 48, 0.16);
+    transform: translateX(-105%);
+    visibility: hidden;
+    transition: transform 0.24s ease, visibility 0.24s;
   }
-  .brand-tagline, .sidebar-tip, .sidebar-footer, .sidebar-label { display: none; }
-  .week-list {
-    flex-direction: row;
-    overflow-x: auto;
-    padding-bottom: 6px;
-    scroll-snap-type: x proximity;
-    -webkit-overflow-scrolling: touch;
+  .sidebar.is-open { transform: none; visibility: visible; }
+  .sidebar-close {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: calc(16px + env(safe-area-inset-top, 0px));
+    right: 14px;
+    width: 38px;
+    height: 38px;
+    border: 1.5px solid var(--line);
+    border-radius: 999px;
+    background: #fff;
+    color: var(--muted);
   }
-  .week-item { min-width: 210px; flex: 0 0 210px; scroll-snap-align: start; }
+  .brand-name { font-size: 22px; }
+  .brand-tagline { margin-bottom: 22px; }
+  .sidebar-tip, .sidebar-footer { display: none; }
+  .week-list { flex-direction: column; overflow-y: auto; padding-bottom: 12px; }
   .week-delete { opacity: 1; }
-  .new-week-button { margin-top: 10px; }
-  .main { padding: 22px 18px calc(50px + env(safe-area-inset-bottom, 0px)); }
+  .new-week-button { margin-top: 14px; }
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 55;
+    border: 0;
+    background: rgba(51, 46, 43, 0.38);
+    backdrop-filter: blur(2px);
+  }
+  .menu-button.icon-button {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    color: var(--coral);
+  }
+  .week-select-wrap { display: none; }
+  .main { padding: 20px 16px calc(50px + env(safe-area-inset-bottom, 0px)); }
+  .topbar { gap: 14px; }
+  .topbar h2 { font-size: 21px; }
 }
 
 @media (max-width: 680px) {
-  .topbar { align-items: flex-start; gap: 16px; }
+  .topbar { align-items: stretch; gap: 14px; }
   .topbar h2 { font-size: 20px; }
   .topbar-actions { width: 100%; }
   .topbar-actions .button { flex: 1; }
-  .week-select-wrap { flex: 1 1 150px; height: 46px; }
-  .week-select-wrap select { max-width: none; flex: 1; }
   .currency-select-wrap { flex: 0 0 auto; height: 46px; }
   .currency-select-wrap select { max-width: 90px; }
   .hero-card { flex-direction: column; align-items: flex-start; padding: 22px; min-height: 0; }
@@ -419,8 +458,13 @@ h1, h2, h3, p { margin: 0; }
   .hero-deco { right: -14px; font-size: 96px; }
   .hero-chart { align-self: stretch; align-items: stretch; }
   .spark-bars, .spark-empty { width: 100%; }
-  .stat-grid { grid-template-columns: 1fr; gap: 12px; }
-  .stat-card { min-height: 0; }
+  .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .stat-card { min-height: 0; padding: 13px 10px; border-radius: 15px; }
+  .stat-icon { width: 28px; height: 28px; margin-bottom: 5px; }
+  .stat-label { font-size: 9.5px; letter-spacing: 0.3px; }
+  .stat-value { font-size: 18px; letter-spacing: -0.5px; }
+  .stat-value-text { font-size: 12px; }
+  .stat-hint { display: none; }
   .form-grid { grid-template-columns: 1fr; gap: 14px; }
   .field-full { grid-column: auto; }
   .expense-row { grid-template-columns: 38px minmax(0, 1fr) auto; gap: 10px; padding: 12px 4px; }

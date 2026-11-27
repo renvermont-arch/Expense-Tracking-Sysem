@@ -1,9 +1,12 @@
 import { formatDate, formatMoney } from '../utils';
 import Icon from './Icon';
 
-export default function Sidebar({ sessions, selectedId, onSelect, onNewSession, onDeleteSession }) {
+export default function Sidebar({ sessions, selectedId, onSelect, onNewSession, onDeleteSession, open, onClose }) {
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${open ? 'is-open' : ''}`}>
+      <button type="button" className="sidebar-close" aria-label="Close weeks panel" onClick={onClose}>
+        <Icon name="x" size={17} />
+      </button>
       <div className="brand">
         <span className="brand-mark">🐷</span>
         <span className="brand-name">penny<span className="brand-dot">.</span></span>
@@ -23,7 +26,7 @@ export default function Sidebar({ sessions, selectedId, onSelect, onNewSession, 
             key={session.id}
             className={`week-item ${session.id === selectedId ? 'active' : ''}`}
           >
-            <button className="week-main" onClick={() => onSelect(session.id)}>
+            <button className="week-main" onClick={() => { onSelect(session.id); onClose(); }}>
               <span className="week-name">{session.name}</span>
               <span className="week-dates">
                 {formatDate(session.week_start)} –{' '}
@@ -39,7 +42,7 @@ export default function Sidebar({ sessions, selectedId, onSelect, onNewSession, 
               className="week-delete"
               title="Delete this week"
               aria-label={`Delete ${session.name}`}
-              onClick={() => onDeleteSession(session)}
+              onClick={() => { onDeleteSession(session); onClose(); }}
             >
               <Icon name="trash" size={15} />
             </button>
@@ -47,7 +50,7 @@ export default function Sidebar({ sessions, selectedId, onSelect, onNewSession, 
         ))}
       </nav>
 
-      <button type="button" className="new-week-button" onClick={onNewSession}>
+      <button type="button" className="new-week-button" onClick={() => { onClose(); onNewSession(); }}>
         <Icon name="plus" size={17} />
         New week
       </button>

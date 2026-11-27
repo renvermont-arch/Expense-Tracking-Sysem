@@ -22,6 +22,7 @@ export default function App() {
   const [online, setOnline] = useState(typeof navigator === 'undefined' ? true : navigator.onLine);
   const [syncMessage, setSyncMessage] = useState('');
   const [installPrompt, setInstallPrompt] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const currencyCode = useCurrency();
   const selectedIdRef = useRef(null);
 
@@ -113,6 +114,15 @@ export default function App() {
   }, [loadSessions, loadWeek]);
 
   useEffect(() => {
+    if (!sidebarOpen) return;
+    const handleKey = (event) => {
+      if (event.key === 'Escape') setSidebarOpen(false);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => window.removeEventListener('keydown', handleKey);
+  }, [sidebarOpen]);
+
+  useEffect(() => {
     const handleInstall = (event) => {
       event.preventDefault();
       setInstallPrompt(event);
@@ -187,13 +197,35 @@ export default function App() {
         onSelect={setSelectedId}
         onNewSession={() => setModal({ type: 'session' })}
         onDeleteSession={handleDeleteSession}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
       />
+
+      {sidebarOpen && (
+        <button
+          type="button"
+          className="sidebar-backdrop"
+          aria-label="Close weeks panel"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
 
       <main className="main">
         <header className="topbar">
-          <div>
-            <div className="eyebrow">Dashboard</div>
-            <h2>Hey there, let’s check your spending <span aria-hidden="true">👋</span></h2>
+          <div className="topbar-heading">
+            <button
+              type="button"
+              className="icon-button menu-button"
+              aria-label="Open weeks panel"
+              aria-expanded={sidebarOpen}
+              onClick={() => setSidebarOpen(true)}
+            >
+              <Icon name="menu" size={20} />
+            </button>
+            <div>
+              <div className="eyebrow">Dashboard</div>
+              <h2>Hey there, let’s check your spending <span aria-hidden="true">👋</span></h2>
+            </div>
           </div>
           <div className="topbar-actions">
             <CurrencySelect />

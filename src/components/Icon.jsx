@@ -12,6 +12,7 @@ const paths = {
   coin: <><circle cx="12" cy="12" r="9" /><path d="M15 9.5a3 3 0 0 0-3-1.5c-1.7 0-3 1-3 2.2 0 3 6 1.3 6 4.3 0 1.2-1.3 2.2-3 2.2a3.2 3.2 0 0 1-3-1.5M12 6v12" /></>,
   arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
   download: <><path d="M12 3v12m-5-5 5 5 5-5" /><path d="M4 17v3h16v-3" /></>,
+  menu: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
 };
 
 export default function Icon({ name, size = 18, className = '' }) {
