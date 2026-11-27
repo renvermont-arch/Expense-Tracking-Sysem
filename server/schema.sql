@@ -1,11 +1,14 @@
 CREATE TABLE IF NOT EXISTS sessions (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(120) NOT NULL,
+  scope VARCHAR(20) NOT NULL DEFAULT 'general',
   week_start DATE NOT NULL,
   week_end DATE NOT NULL,
   note VARCHAR(255) NOT NULL DEFAULT '',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT chk_week_order CHECK (week_end >= week_start)
+  CONSTRAINT chk_week_order CHECK (week_end >= week_start),
+  CONSTRAINT chk_session_scope CHECK (scope IN ('general', 'personal')),
+  INDEX idx_sessions_scope (scope)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS expenses (

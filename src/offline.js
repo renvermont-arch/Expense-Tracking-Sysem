@@ -33,6 +33,22 @@ export function nextTempId() {
   return -Date.now() - Math.floor(Math.random() * 1000);
 }
 
+// Older builds stored one un-namespaced book. Move it into General so nobody
+// loses their weeks when the separate Personal tracker is introduced.
+export function migrateLegacyScopeData() {
+  if (cacheGet('general:sessions', undefined) !== undefined) return;
+  const sessions = cacheGet('sessions', undefined);
+  if (sessions === undefined) return;
+
+  cacheSet('general:sessions', sessions);
+  for (const session of sessions) {
+    const expenses = cacheGet(`expenses:${session.id}`, undefined);
+    if (expenses !== undefined) cacheSet(`general:expenses:${session.id}`, expenses);
+    const summary = cacheGet(`summary:${session.id}`, undefined);
+    if (summary !== undefined) cacheSet(`general:summary:${session.id}`, summary);
+  }
+}
+
 export function computeSummary(expenses = []) {
   const amounts = expenses.map((expense) => Number(expense.amount) || 0);
   const total = amounts.reduce((sum, amount) => sum + amount, 0);

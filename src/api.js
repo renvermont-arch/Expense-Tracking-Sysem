@@ -2,13 +2,22 @@ import {
   cacheGet,
   cacheSet,
   computeSummary,
+  migrateLegacyScopeData,
   nextTempId,
   pendingCount,
   queueGet,
   queueSet,
 } from './offline';
+import { getScope } from './scope';
 
 const round2 = (value) => Math.round(Number(value) * 100) / 100;
+
+// General and Personal are separate books. Each cache key and API request is
+// namespaced so switching between them never mixes the two sets of weeks.
+const scopeKey = (key) => `${getScope()}:${key}`;
+const scopeQuery = () => `scope=${encodeURIComponent(getScope())}`;
+
+migrateLegacyScopeData();
 
 // Local dev uses the Vite proxy (/api). Published builds use a hosted API only
 // when VITE_API_BASE_URL is set; otherwise they run entirely on-device.
@@ -47,7 +56,7 @@ async function request(path, options = {}) {
 }
 
 function enqueue(operation) {
-  if (!isLocalOnly) queueSet([...queueGet(), operation]);
+  if (!isLocalOnly) queueSet([...queueGet(), { ...operation, scope: getScope() }]);
 }
 
 // Returns null when there is no backend to talk to, or when we are offline.
@@ -62,8 +71,8 @@ async function tryRemote(path, options) {
 }
 
 function saveExpenses(sessionId, expenses) {
-  cacheSet(`expenses:${sessionId}`, expenses);
-  const sessions = cacheGet('sessions', []).map((session) =>
+  cacheSet(scopeKey(`expenses:${sessionId}`), expenses);
+  const sessions = cacheGet(scopeKey('sessions'), []).map((session) =>
     session.id === sessionId
       ? {
           ...session,
@@ -72,16 +81,16 @@ function saveExpenses(sessionId, expenses) {
         }
       : session,
   );
-  cacheSet('sessions', sessions);
-  cacheSet(`summary:${sessionId}`, computeSummary(expenses));
+  cacheSet(scopeKey('sessions'), sessions);
+  cacheSet(scopeKey(`summary:${sessionId}`), computeSummary(expenses));
 }
 
 function expensesOf(sessionId) {
-  return cacheGet(`expenses:${sessionId}`, []);
+  return cacheGet(scopeKey(`expenses:${sessionId}`), []);
 }
 
 function sessionOfExpense(expenseId) {
-  for (const session of cacheGet('sessions', [])) {
+  for (const session of cacheGet(scopeKey('sessions'), [])) {
     if (expensesOf(session.id).some((expense) => expense.id === expenseId)) return session.id;
   }
   return null;
@@ -100,20 +109,21 @@ function emptyValueFor(cacheKey) {
 }
 
 async function cachedRead(path, cacheKey) {
+  const key = scopeKey(cacheKey);
   if (isLocalOnly) {
-    const cached = cacheGet(cacheKey);
+    const cached = cacheGet(key);
     if (cached !== null) return cached;
     const empty = emptyValueFor(cacheKey);
-    if (empty !== null) cacheSet(cacheKey, empty);
+    if (empty !== null) cacheSet(key, empty);
     return empty;
   }
 
   try {
     const data = await request(path);
-    cacheSet(cacheKey, data);
+    cacheSet(key, data);
     return data;
   } catch (error) {
-    const cached = cacheGet(cacheKey);
+    const cached = cacheGet(key);
     if (cached !== null) return cached;
     throw error;
   }
@@ -121,12 +131,13 @@ async function cachedRead(path, cacheKey) {
 
 /* ------------------------------- sessions ------------------------------- */
 
-async function createSession(payload) {
+async function createSession(input) {
+  const payload = { ...input, scope: getScope() };
   const created = await tryRemote('/sessions', { method: 'POST', body: JSON.stringify(payload) });
   if (created) {
-    cacheSet('sessions', [created, ...cacheGet('sessions', [])]);
-    cacheSet(`expenses:${created.id}`, []);
-    cacheSet(`summary:${created.id}`, computeSummary([]));
+    cacheSet(scopeKey('sessions'), [created, ...cacheGet(scopeKey('sessions'), [])]);
+    cacheSet(scopeKey(`expenses:${created.id}`), []);
+    cacheSet(scopeKey(`summary:${created.id}`), computeSummary([]));
     return created;
   }
 
@@ -138,44 +149,53 @@ async function createSession(payload) {
     created_at: new Date().toISOString(),
     _offline: true,
   };
-  cacheSet('sessions', [local, ...cacheGet('sessions', [])]);
-  cacheSet(`expenses:${local.id}`, []);
-  cacheSet(`summary:${local.id}`, computeSummary([]));
+  cacheSet(scopeKey('sessions'), [local, ...cacheGet(scopeKey('sessions'), [])]);
+  cacheSet(scopeKey(`expenses:${local.id}`), []);
+  cacheSet(scopeKey(`summary:${local.id}`), computeSummary([]));
   enqueue({ id: local.id, kind: 'session', action: 'create', payload });
   return local;
 }
 
 async function deleteSession(id) {
-  const removed = await tryRemote(`/sessions/${id}`, { method: 'DELETE' });
+  const removed = await tryRemote(`/sessions/${id}?${scopeQuery()}`, { method: 'DELETE' });
   if (!removed && !isLocalOnly) {
     cacheSet(
-      'sessions',
-      cacheGet('sessions', []).filter((session) => session.id !== id),
+      scopeKey('sessions'),
+      cacheGet(scopeKey('sessions'), []).filter((session) => session.id !== id),
     );
-    cacheSet(`expenses:${id}`, []);
-    cacheSet(`summary:${id}`, computeSummary([]));
+    cacheSet(scopeKey(`expenses:${id}`), []);
+    cacheSet(scopeKey(`summary:${id}`), computeSummary([]));
     queueSet(
       queueGet().filter(
         (operation) =>
-          !(operation.kind === 'session' && operation.id === id) &&
-          !(operation.kind === 'expense' && operation.payload?.session_id === id),
+          !(
+            (operation.scope || 'general') === getScope() &&
+            operation.kind === 'session' &&
+            operation.id === id
+          ) &&
+          !(
+            (operation.scope || 'general') === getScope() &&
+            operation.kind === 'expense' &&
+            operation.payload?.session_id === id
+          ),
       ),
     );
     if (id > 0) enqueue({ id, kind: 'session', action: 'delete' });
   } else if (isLocalOnly) {
     cacheSet(
-      'sessions',
-      cacheGet('sessions', []).filter((session) => session.id !== id),
+      scopeKey('sessions'),
+      cacheGet(scopeKey('sessions'), []).filter((session) => session.id !== id),
     );
-    cacheSet(`expenses:${id}`, []);
-    cacheSet(`summary:${id}`, computeSummary([]));
+    cacheSet(scopeKey(`expenses:${id}`), []);
+    cacheSet(scopeKey(`summary:${id}`), computeSummary([]));
   }
   return { ok: true };
 }
 
 /* ------------------------------- expenses ------------------------------- */
 
-async function createExpense(payload) {
+async function createExpense(input) {
+  const payload = { ...input, scope: getScope() };
   const created = await tryRemote('/expenses', { method: 'POST', body: JSON.stringify(payload) });
   if (created) {
     saveExpenses(payload.session_id, [...expensesOf(payload.session_id), created]);
@@ -198,9 +218,9 @@ async function createExpense(payload) {
 
 async function updateExpense(id, payload) {
   const sessionId = sessionOfExpense(id);
-  const updated = await tryRemote(`/expenses/${id}`, {
+  const updated = await tryRemote(`/expenses/${id}?${scopeQuery()}`, {
     method: 'PUT',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, scope: getScope() }),
   });
 
   if (updated) {
@@ -228,7 +248,7 @@ async function updateExpense(id, payload) {
 }
 
 async function deleteExpense(id) {
-  const removed = await tryRemote(`/expenses/${id}`, { method: 'DELETE' });
+  const removed = await tryRemote(`/expenses/${id}?${scopeQuery()}`, { method: 'DELETE' });
   if (!removed) {
     const sessionId = sessionOfExpense(id);
     if (sessionId !== null) {
@@ -241,7 +261,12 @@ async function deleteExpense(id) {
       queueSet(
         queueGet().filter(
           (operation) =>
-            !(operation.kind === 'expense' && operation.action === 'create' && operation.id === id),
+            !(
+              (operation.scope || 'general') === getScope() &&
+              operation.kind === 'expense' &&
+              operation.action === 'create' &&
+              operation.id === id
+            ),
         ),
       );
       if (id > 0) enqueue({ id, kind: 'expense', action: 'delete' });
@@ -271,14 +296,17 @@ export function flushQueue() {
 
     for (const operation of operations) {
       try {
-        const id = idMap[operation.id] ?? operation.id;
-        let payload = operation.payload ? { ...operation.payload } : undefined;
+        const scope = operation.scope || 'general';
+        const key = (value) => `${scope}:${value}`;
+        const id = idMap[key(operation.id)] ?? operation.id;
+        let payload = operation.payload ? { ...operation.payload, scope } : undefined;
         if (payload && payload.session_id != null) {
-          payload.session_id = idMap[payload.session_id] ?? payload.session_id;
+          payload.session_id = idMap[key(payload.session_id)] ?? payload.session_id;
         }
 
         const resource = operation.kind === 'session' ? 'sessions' : 'expenses';
-        const path = operation.action === 'create' ? `/${resource}` : `/${resource}/${id}`;
+        const base = operation.action === 'create' ? `/${resource}` : `/${resource}/${id}`;
+        const path = `${base}?scope=${encodeURIComponent(scope)}`;
         const method =
           operation.action === 'create' ? 'POST' : operation.action === 'update' ? 'PUT' : 'DELETE';
 
@@ -286,7 +314,7 @@ export function flushQueue() {
           method,
           body: payload ? JSON.stringify(payload) : undefined,
         });
-        if (operation.action === 'create' && result?.id) idMap[operation.id] = result.id;
+        if (operation.action === 'create' && result?.id) idMap[key(operation.id)] = result.id;
         synced += 1;
       } catch (error) {
         if (!isOfflineError(error)) console.warn('Could not sync a saved change:', error.message);
@@ -303,11 +331,13 @@ export function flushQueue() {
 }
 
 export const api = {
-  getSessions: () => cachedRead('/sessions', 'sessions'),
+  getSessions: () => cachedRead(`/sessions?${scopeQuery()}`, 'sessions'),
   createSession,
   deleteSession,
-  getExpenses: (sessionId) => cachedRead(`/sessions/${sessionId}/expenses`, `expenses:${sessionId}`),
-  getSummary: (sessionId) => cachedRead(`/sessions/${sessionId}/summary`, `summary:${sessionId}`),
+  getExpenses: (sessionId) =>
+    cachedRead(`/sessions/${sessionId}/expenses?${scopeQuery()}`, `expenses:${sessionId}`),
+  getSummary: (sessionId) =>
+    cachedRead(`/sessions/${sessionId}/summary?${scopeQuery()}`, `summary:${sessionId}`),
   createExpense,
   updateExpense,
   deleteExpense,

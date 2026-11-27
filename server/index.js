@@ -25,8 +25,26 @@ const isNonNegativeNumber = (value) => value !== '' && value != null && Number.i
 const clean = (value, max = 255) => String(value ?? '').trim().slice(0, max);
 const round2 = (value) => Math.round(value * 100) / 100;
 
-async function sessionExists(id) {
-  const [rows] = await getPool().query('SELECT id FROM sessions WHERE id = ?', [id]);
+const normalizeScope = (value) => (value === 'personal' ? 'personal' : 'general');
+
+async function sessionExists(id, scope) {
+  const params = [id];
+  let sql = 'SELECT id FROM sessions WHERE id = ?';
+  if (scope) {
+    sql += ' AND scope = ?';
+    params.push(normalizeScope(scope));
+  }
+  const [rows] = await getPool().query(sql, params);
+  return rows.length > 0;
+}
+
+async function expenseInScope(id, scope) {
+  const [rows] = await getPool().query(
+    `SELECT e.id FROM expenses e
+      JOIN sessions s ON s.id = e.session_id
+      WHERE e.id = ? AND s.scope = ?`,
+    [id, normalizeScope(scope)],
+  );
   return rows.length > 0;
 }
 
@@ -34,16 +52,19 @@ app.get('/api/health', (_req, res) => res.json({ ok: true }));
 
 /* ------------------------------- sessions ------------------------------- */
 
-app.get('/api/sessions', async (_req, res) => {
-  const [rows] = await getPool().query(`
-    SELECT s.id, s.name, s.week_start, s.week_end, s.note, s.created_at,
-           COUNT(e.id) AS expense_count,
-           COALESCE(SUM(e.amount), 0) AS total
-    FROM sessions s
-    LEFT JOIN expenses e ON e.session_id = s.id
-    GROUP BY s.id
-    ORDER BY s.week_start DESC, s.id DESC
-  `);
+app.get('/api/sessions', async (req, res) => {
+  const scope = normalizeScope(req.query.scope);
+  const [rows] = await getPool().query(
+    `SELECT s.id, s.name, s.scope, s.week_start, s.week_end, s.note, s.created_at,
+            COUNT(e.id) AS expense_count,
+            COALESCE(SUM(e.amount), 0) AS total
+     FROM sessions s
+     LEFT JOIN expenses e ON e.session_id = s.id
+     WHERE s.scope = ?
+     GROUP BY s.id
+     ORDER BY s.week_start DESC, s.id DESC`,
+    [scope],
+  );
   res.json(rows);
 });
 
@@ -51,6 +72,7 @@ app.post('/api/sessions', async (req, res) => {
   const name = clean(req.body.name, 120);
   const { week_start, week_end } = req.body;
   const note = clean(req.body.note, 255);
+  const scope = normalizeScope(req.body.scope);
 
   if (!name) return res.status(400).json({ error: 'Please give this week a name.' });
   if (!isDate(week_start) || !isDate(week_end)) {
@@ -61,15 +83,18 @@ app.post('/api/sessions', async (req, res) => {
   }
 
   const [result] = await getPool().query(
-    'INSERT INTO sessions (name, week_start, week_end, note) VALUES (?, ?, ?, ?)',
-    [name, week_start, week_end, note],
+    'INSERT INTO sessions (name, scope, week_start, week_end, note) VALUES (?, ?, ?, ?, ?)',
+    [name, scope, week_start, week_end, note],
   );
-  res.status(201).json({ id: result.insertId, name, week_start, week_end, note });
+  res.status(201).json({ id: result.insertId, name, scope, week_start, week_end, note });
 });
 
 app.delete('/api/sessions/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid week.' });
+  if (!(await sessionExists(id, req.query.scope))) {
+    return res.status(404).json({ error: 'Week not found.' });
+  }
   const [result] = await getPool().query('DELETE FROM sessions WHERE id = ?', [id]);
   if (!result.affectedRows) return res.status(404).json({ error: 'Week not found.' });
   res.json({ ok: true });
@@ -80,6 +105,9 @@ app.delete('/api/sessions/:id', async (req, res) => {
 app.get('/api/sessions/:id/expenses', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid week.' });
+  if (!(await sessionExists(id, req.query.scope))) {
+    return res.status(404).json({ error: 'Week not found.' });
+  }
   const [rows] = await getPool().query(
     'SELECT * FROM expenses WHERE session_id = ? ORDER BY purchased_at DESC, id DESC',
     [id],
@@ -90,6 +118,9 @@ app.get('/api/sessions/:id/expenses', async (req, res) => {
 app.get('/api/sessions/:id/summary', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid week.' });
+  if (!(await sessionExists(id, req.query.scope))) {
+    return res.status(404).json({ error: 'Week not found.' });
+  }
 
   const [totals] = await getPool().query(
     `SELECT COALESCE(SUM(amount), 0) AS total,
@@ -152,7 +183,7 @@ function validateExpense(body) {
 
 app.post('/api/expenses', async (req, res) => {
   const session_id = Number(req.body.session_id);
-  if (!Number.isInteger(session_id) || !(await sessionExists(session_id))) {
+  if (!Number.isInteger(session_id) || !(await sessionExists(session_id, req.body.scope))) {
     return res.status(400).json({ error: 'Please choose a valid week first.' });
   }
 
@@ -172,6 +203,9 @@ app.post('/api/expenses', async (req, res) => {
 app.put('/api/expenses/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid expense.' });
+  if (req.query.scope && !(await expenseInScope(id, req.query.scope))) {
+    return res.status(404).json({ error: 'Expense not found.' });
+  }
 
   const { errors, values } = validateExpense(req.body);
   if (errors.length) return res.status(400).json({ error: errors[0] });
@@ -189,6 +223,9 @@ app.put('/api/expenses/:id', async (req, res) => {
 app.delete('/api/expenses/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid expense.' });
+  if (req.query.scope && !(await expenseInScope(id, req.query.scope))) {
+    return res.status(404).json({ error: 'Expense not found.' });
+  }
   const [result] = await getPool().query('DELETE FROM expenses WHERE id = ?', [id]);
   if (!result.affectedRows) return res.status(404).json({ error: 'Expense not found.' });
   res.json({ ok: true });

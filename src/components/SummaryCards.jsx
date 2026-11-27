@@ -1,5 +1,6 @@
 import { CATEGORY_EMOJI } from '../config';
 import { formatDate, formatMoney } from '../utils';
+import BudgetCard from './BudgetCard';
 import Icon from './Icon';
 
 function SparkBars({ daily }) {
@@ -45,6 +46,8 @@ export default function SummaryCards({ summary, week }) {
           <span className="spark-caption">{summary?.daily?.length || 0} spending days</span>
         </div>
       </section>
+
+      <BudgetCard week={week} spent={total} />
 
       <section className="stat-grid">
         <div className="stat-card stat-pink">

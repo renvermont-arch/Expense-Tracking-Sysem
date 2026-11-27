@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, isLocalOnly } from './api';
 import { useCurrency } from './currency';
+import { useScope } from './scope';
 import CurrencySelect from './components/CurrencySelect';
 import ExpenseFormModal from './components/ExpenseFormModal';
 import ExpenseList from './components/ExpenseList';
 import Icon from './components/Icon';
 import SessionModal from './components/SessionModal';
 import Sidebar from './components/Sidebar';
+import ScopeTabs from './components/ScopeTabs';
 import SummaryCards from './components/SummaryCards';
 
 export default function App() {
@@ -24,6 +26,7 @@ export default function App() {
   const [installPrompt, setInstallPrompt] = useState(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const currencyCode = useCurrency();
+  const scope = useScope();
   const selectedIdRef = useRef(null);
 
   useEffect(() => {
@@ -52,6 +55,11 @@ export default function App() {
 
   useEffect(() => {
     let cancelled = false;
+    setSessions([]);
+    setSelectedId(null);
+    setExpenses([]);
+    setSummary(null);
+    setSidebarOpen(false);
     (async () => {
       try {
         setLoading(true);
@@ -64,7 +72,7 @@ export default function App() {
       }
     })();
     return () => { cancelled = true; };
-  }, [loadSessions]);
+  }, [scope, loadSessions]);
 
   useEffect(() => {
     if (selectedId == null) return;
@@ -190,7 +198,7 @@ export default function App() {
   const selected = sessions.find((session) => session.id === selectedId);
 
   return (
-    <div className="app-shell" data-currency={currencyCode}>
+    <div className="app-shell" data-currency={currencyCode} data-scope={scope}>
       <Sidebar
         sessions={sessions}
         selectedId={selectedId}
@@ -223,7 +231,7 @@ export default function App() {
               <Icon name="menu" size={20} />
             </button>
             <div>
-              <div className="eyebrow">Dashboard</div>
+              <ScopeTabs />
               <h2>Hey there, let’s check your spending <span aria-hidden="true">👋</span></h2>
             </div>
           </div>

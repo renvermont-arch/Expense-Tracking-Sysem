@@ -7,12 +7,14 @@ Track purchases per **weekly session**, see each item's details, category breakd
 ## Features
 
 - Create a new week (session) with a name, date range, and optional note
-- Switch between weeks from the sidebar or the dashboard dropdown — each week keeps its own data
+- Switch between weeks from the slide-out sidebar — each week keeps its own data
+- **General** and **Personal** are separate books; each has its own weeks, expenses, and budgets. Switch between them at the top of the dashboard.
 - Log an expense with: item name, category, quantity, unit, unit price, purchase date, and note
 - Live total preview while filling in the form (quantity × unit price)
 - Edit and delete expenses; delete weeks
+- Set a **weekly budget** for each week. The dashboard shows how much is left, a progress bar, and an over-budget warning; it updates as soon as you add, edit, or delete an expense.
 - Dashboard shows total spent, item count, average, biggest purchase, per-category bars, spending-day bars, and the full purchase list grouped by date
-- Phone-friendly pastel UI with touch-sized buttons, a mobile week carousel, and bottom-sheet forms
+- Phone-friendly pastel UI with touch-sized buttons, a slide-out weeks drawer, and bottom-sheet forms
 - **Installable PWA** with a service worker, app icon, and offline support: previously viewed weeks/data open without a connection, and changes you make offline are saved on the device and synced automatically when you reconnect
 - **GitHub Pages ready**: published builds work in local mode with data in the browser, or with a hosted MySQL API if you configure one
 - Switch currencies in the app — Philippine peso, Vietnamese dong, South Korean won, Japanese yen, Malaysian ringgit, Indonesian rupiah and many more
@@ -52,7 +54,7 @@ This starts both servers together:
 - React app: **http://localhost:5173**
 - API: **http://127.0.0.1:3001**
 
-The app starts empty — create your first week from the sidebar or the dashboard button.
+The app starts empty — create your first week in either the General or Personal book from the sidebar or the dashboard button. Weekly budgets are saved on the device; with a hosted API, weeks and expenses sync but budgets stay local to that browser.
 
 ## Install it (PWA)
 
@@ -95,7 +97,7 @@ This changes how amounts are **displayed**, not their value — switching from `
 
 ## Database layout
 
-- `sessions`: `id`, `name`, `week_start`, `week_end`, `note`, `created_at`
+- `sessions`: `id`, `name`, `scope` (`general` or `personal`), `week_start`, `week_end`, `note`, `created_at`
 - `expenses`: `id`, `session_id` (foreign key), `item_name`, `category`, `quantity`, `unit`, `unit_price`, `amount`, `purchased_at`, `note`, `created_at`
 
 Schema: `server/schema.sql`. Deleting a week cascades to its expenses.

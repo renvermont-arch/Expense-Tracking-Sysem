@@ -31,4 +31,16 @@ export async function initDb() {
 
   const schema = fs.readFileSync(new URL('./schema.sql', import.meta.url), 'utf8');
   await pool.query(schema);
+
+  // Add the General/Personal column to databases created by older versions.
+  const [columns] = await pool.query(
+    `SELECT COLUMN_NAME FROM information_schema.COLUMNS
+      WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'sessions' AND COLUMN_NAME = 'scope'`,
+    [dbName],
+  );
+  if (!columns.length) {
+    await pool.query(
+      "ALTER TABLE sessions ADD COLUMN scope VARCHAR(20) NOT NULL DEFAULT 'general'",
+    );
+  }
 }

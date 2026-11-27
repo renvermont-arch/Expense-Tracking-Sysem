@@ -13,6 +13,7 @@ const paths = {
   arrow: <path d="M5 12h14m-6-6 6 6-6 6" />,
   download: <><path d="M12 3v12m-5-5 5 5 5-5" /><path d="M4 17v3h16v-3" /></>,
   menu: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
+  target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="4.5" /><circle cx="12" cy="12" r="1" /></>,
 };
 
 export default function Icon({ name, size = 18, className = '' }) {
