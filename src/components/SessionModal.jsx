@@ -1,18 +1,28 @@
 import { useState } from 'react';
-import { addDays, isoDate, mondayOf, weekLabel } from '../utils';
+import { addDays, formatDate, isoDate, mondayOf, weekLabel } from '../utils';
 import Icon from './Icon';
 import Modal from './Modal';
 
-export default function SessionModal({ onClose, onSubmit, busy }) {
+export default function SessionModal({ session, onClose, onSubmit, busy }) {
+  const editing = Boolean(session);
   const thisMonday = mondayOf(new Date());
   const lastMonday = addDays(thisMonday, -7);
 
-  const [form, setForm] = useState({
-    name: weekLabel(thisMonday),
-    week_start: isoDate(thisMonday),
-    week_end: isoDate(addDays(thisMonday, 6)),
-    note: '',
-  });
+  const [form, setForm] = useState(() =>
+    session
+      ? {
+          name: session.name || '',
+          week_start: session.week_start,
+          week_end: session.week_end,
+          note: session.note || '',
+        }
+      : {
+          name: weekLabel(thisMonday),
+          week_start: isoDate(thisMonday),
+          week_end: isoDate(addDays(thisMonday, 6)),
+          note: '',
+        },
+  );
 
   const update = (key) => (event) => setForm((current) => ({ ...current, [key]: event.target.value }));
 
@@ -26,47 +36,65 @@ export default function SessionModal({ onClose, onSubmit, busy }) {
   };
 
   return (
-    <Modal title="New week" subtitle="A fresh little page for your expenses" onClose={onClose}>
+    <Modal
+      title={editing ? 'Rename week' : 'New week'}
+      subtitle={editing ? 'Give this week a name you will recognise' : 'A fresh little page for your expenses'}
+      onClose={onClose}
+    >
       <form
         onSubmit={(event) => {
           event.preventDefault();
           onSubmit(form);
         }}
       >
-        <div className="quick-range">
-          <button type="button" onClick={() => chooseWeek(thisMonday)} className="chip-button active">
-            <Icon name="calendar" size={15} /> This week
-          </button>
-          <button type="button" onClick={() => chooseWeek(lastMonday)} className="chip-button">
-            <Icon name="calendar" size={15} /> Last week
-          </button>
-        </div>
+        {!editing && (
+          <div className="quick-range">
+            <button type="button" onClick={() => chooseWeek(thisMonday)} className="chip-button active">
+              <Icon name="calendar" size={15} /> This week
+            </button>
+            <button type="button" onClick={() => chooseWeek(lastMonday)} className="chip-button">
+              <Icon name="calendar" size={15} /> Last week
+            </button>
+          </div>
+        )}
 
         <div className="form-grid">
           <label className="field field-full">
             <span>Week name <em>*</em></span>
             <input autoFocus required maxLength={120} placeholder="e.g. Week of Nov 24" value={form.name} onChange={update('name')} />
           </label>
-          <label className="field">
-            <span>Start date <em>*</em></span>
-            <input
-              type="date"
-              required
-              value={form.week_start}
-              onChange={(event) => {
-                const start = new Date(`${event.target.value}T00:00:00`);
-                setForm((current) => ({
-                  ...current,
-                  week_start: event.target.value,
-                  week_end: Number.isNaN(start.getTime()) ? current.week_end : isoDate(addDays(start, 6)),
-                }));
-              }}
-            />
-          </label>
-          <label className="field">
-            <span>End date <em>*</em></span>
-            <input type="date" required min={form.week_start} value={form.week_end} onChange={update('week_end')} />
-          </label>
+          {!editing ? (
+            <>
+              <label className="field">
+                <span>Start date <em>*</em></span>
+                <input
+                  type="date"
+                  required
+                  value={form.week_start}
+                  onChange={(event) => {
+                    const start = new Date(`${event.target.value}T00:00:00`);
+                    setForm((current) => ({
+                      ...current,
+                      week_start: event.target.value,
+                      week_end: Number.isNaN(start.getTime()) ? current.week_end : isoDate(addDays(start, 6)),
+                    }));
+                  }}
+                />
+              </label>
+              <label className="field">
+                <span>End date <em>*</em></span>
+                <input type="date" required min={form.week_start} value={form.week_end} onChange={update('week_end')} />
+              </label>
+            </>
+          ) : (
+            <div className="field field-full rename-dates">
+              <Icon name="calendar" size={14} />
+              <span>
+                {formatDate(form.week_start)} –{' '}
+                {formatDate(form.week_end, { month: 'short', day: 'numeric', year: 'numeric' })}
+              </span>
+            </div>
+          )}
           <label className="field field-full">
             <span>Note <small>(optional)</small></span>
             <input maxLength={255} placeholder="Anything about this week" value={form.note} onChange={update('note')} />
@@ -78,7 +106,7 @@ export default function SessionModal({ onClose, onSubmit, busy }) {
         <div className="modal-actions">
           <button type="button" className="button button-ghost" onClick={onClose}>Cancel</button>
           <button type="submit" className="button button-primary" disabled={busy}>
-            {busy ? 'Creating…' : 'Create week'}
+            {busy ? 'Saving…' : editing ? 'Save changes' : 'Create week'}
           </button>
         </div>
       </form>

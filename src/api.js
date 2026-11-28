@@ -156,6 +156,30 @@ async function createSession(input) {
   return local;
 }
 
+async function updateSession(id, payload) {
+  const name = String(payload?.name ?? '').trim().slice(0, 120);
+  const note = String(payload?.note ?? '').trim().slice(0, 255);
+  if (!name) throw new Error('Please give this week a name.');
+
+  const changes = { name, note };
+  const updated = await tryRemote(`/sessions/${id}?${scopeQuery()}`, {
+    method: 'PUT',
+    body: JSON.stringify({ ...changes, scope: getScope() }),
+  });
+
+  cacheSet(
+    scopeKey('sessions'),
+    cacheGet(scopeKey('sessions'), []).map((session) =>
+      session.id === id ? { ...session, ...changes, ...(updated || {}) } : session,
+    ),
+  );
+
+  if (!updated && !isLocalOnly) {
+    enqueue({ id, kind: 'session', action: 'update', payload: changes });
+  }
+  return { id, ...changes };
+}
+
 async function deleteSession(id) {
   const removed = await tryRemote(`/sessions/${id}?${scopeQuery()}`, { method: 'DELETE' });
   if (!removed && !isLocalOnly) {
@@ -333,6 +357,7 @@ export function flushQueue() {
 export const api = {
   getSessions: () => cachedRead(`/sessions?${scopeQuery()}`, 'sessions'),
   createSession,
+  updateSession,
   deleteSession,
   getExpenses: (sessionId) =>
     cachedRead(`/sessions/${sessionId}/expenses?${scopeQuery()}`, `expenses:${sessionId}`),

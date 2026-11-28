@@ -112,7 +112,7 @@ h1, h2, h3, p { margin: 0; }
   text-align: left;
   background: none;
   border: 0;
-  padding: 13px 34px 13px 14px;
+  padding: 13px 60px 13px 14px;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -140,6 +140,24 @@ h1, h2, h3, p { margin: 0; }
 }
 .week-item:hover .week-delete, .week-delete:focus-visible { opacity: 1; }
 .week-delete:hover { color: #e05b5b; background: #fff; }
+
+.week-rename {
+  position: absolute;
+  right: 38px;
+  top: 14px;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #c6b8b0;
+  opacity: 0;
+  transition: opacity 0.16s, color 0.16s, background 0.16s;
+}
+.week-item:hover .week-rename, .week-rename:focus-visible { opacity: 1; }
+.week-rename:hover { color: var(--coral-dark); background: #fff; }
 
 .new-week-button {
   width: 100%;
@@ -341,7 +359,19 @@ h1, h2, h3, p { margin: 0; }
 .category-fill { height: 100%; border-radius: 999px; background: linear-gradient(90deg, #ffb19f, var(--coral)); transition: width 0.3s ease; }
 .category-count { display: block; margin-top: 4px; font-size: 10.5px; color: var(--muted); }
 
-.expense-groups { display: flex; flex-direction: column; gap: 6px; }
+.purchases-latest-label { display: inline-flex; align-items: center; gap: 5px; margin: 2px 0 8px; color: var(--coral-dark); font-size: 11px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase; }
+
+/* Fixed height keeps the list rollable instead of stretching the dashboard. */
+.expense-groups { display: flex; flex-direction: column; gap: 6px; max-height: 330px; overflow-y: auto; overscroll-behavior: contain; padding-right: 4px; scrollbar-width: thin; scrollbar-color: #f1cbc0 transparent; }
+.expense-groups::-webkit-scrollbar { width: 6px; }
+.expense-groups::-webkit-scrollbar-thumb { background: #f1cbc0; border-radius: 999px; }
+.expense-groups:focus-visible { outline: 2px solid var(--coral); outline-offset: 3px; border-radius: 8px; }
+
+.purchases-toggle { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; padding: 8px 13px; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; color: var(--coral-dark); font-size: 12px; font-weight: 800; }
+.purchases-toggle:hover { background: var(--coral-soft); border-color: #ffd3c8; }
+.purchases-toggle svg { transition: transform 0.16s; }
+.purchases-toggle svg.is-up { transform: rotate(180deg); }
+
 .date-divider { display: flex; align-items: center; gap: 10px; margin: 12px 0 4px; color: var(--muted); font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; }
 .date-divider::after { content: ''; flex: 1; height: 1px; background: var(--line); }
 
@@ -390,6 +420,8 @@ h1, h2, h3, p { margin: 0; }
 .chip-button { display: inline-flex; align-items: center; gap: 6px; padding: 8px 14px; border: 1.5px solid var(--line); border-radius: 999px; background: #fff; color: var(--muted); font-size: 12px; font-weight: 800; }
 .chip-button.active, .chip-button:hover { background: var(--coral-soft); border-color: #ffd3c8; color: var(--coral-dark); }
 .form-hint { font-size: 11.5px; color: var(--muted); margin-top: 16px; }
+.rename-dates { flex-direction: row; align-items: center; gap: 7px; padding: 10px 12px; border-radius: 12px; background: var(--coral-soft); color: var(--coral-dark); font-size: 12px; font-weight: 700; }
+.rename-dates span { font-size: 12px; font-weight: 700; color: inherit; }
 
 .total-preview { display: flex; justify-content: space-between; align-items: center; margin-top: 18px; padding: 13px 16px; border-radius: 14px; background: var(--mint-soft); color: #46876e; }
 .total-preview span { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 800; }
@@ -403,6 +435,8 @@ h1, h2, h3, p { margin: 0; }
   .button { min-height: 44px; }
   .icon-button { width: 42px; height: 42px; }
   .week-delete { width: 38px; height: 38px; opacity: 1; }
+  .week-rename { right: 48px; width: 38px; height: 38px; opacity: 1; }
+  .week-main { padding-right: 96px; }
   .chip-button { min-height: 42px; }
   .week-select-wrap, .currency-select-wrap { height: 46px; }
   .field input { height: 46px; }
@@ -444,7 +478,7 @@ h1, h2, h3, p { margin: 0; }
   .brand-tagline { margin-bottom: 22px; }
   .sidebar-tip, .sidebar-footer { display: none; }
   .week-list { flex-direction: column; overflow-y: auto; padding-bottom: 12px; }
-  .week-delete { opacity: 1; }
+  .week-delete, .week-rename { opacity: 1; }
   .new-week-button { margin-top: 14px; }
   .sidebar-backdrop {
     display: block;

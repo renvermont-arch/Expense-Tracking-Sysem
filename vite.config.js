@@ -33,7 +33,12 @@ export default defineConfig({
         ],
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // Keep version.json in the precache so every push produces a new sw.js.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2,json,webmanifest}'],
+        // injectRegister is false in this app, so ask Workbox to activate new
+        // service workers right away instead of waiting for every tab to close.
+        skipWaiting: true,
+        clientsClaim: true,
         navigateFallback: `${normalizedBase}index.html`,
         cleanupOutdatedCaches: true,
         runtimeCaching: [

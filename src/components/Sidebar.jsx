@@ -1,7 +1,7 @@
 import { formatDate, formatMoney } from '../utils';
 import Icon from './Icon';
 
-export default function Sidebar({ sessions, selectedId, onSelect, onNewSession, onDeleteSession, open, onClose }) {
+export default function Sidebar({ sessions, selectedId, onSelect, onNewSession, onRenameSession, onDeleteSession, open, onClose }) {
   return (
     <aside className={`sidebar ${open ? 'is-open' : ''}`}>
       <button type="button" className="sidebar-close" aria-label="Close weeks panel" onClick={onClose}>
@@ -36,6 +36,15 @@ export default function Sidebar({ sessions, selectedId, onSelect, onNewSession, 
                 <span>{session.expense_count} items</span>
                 <strong>{formatMoney(session.total)}</strong>
               </span>
+            </button>
+            <button
+              type="button"
+              className="week-rename"
+              title="Rename this week"
+              aria-label={`Rename ${session.name}`}
+              onClick={() => { onRenameSession(session); onClose(); }}
+            >
+              <Icon name="pencil" size={15} />
             </button>
             <button
               type="button"

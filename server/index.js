@@ -89,6 +89,41 @@ app.post('/api/sessions', async (req, res) => {
   res.status(201).json({ id: result.insertId, name, scope, week_start, week_end, note });
 });
 
+app.put('/api/sessions/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid week.' });
+  if (!(await sessionExists(id, req.query.scope))) {
+    return res.status(404).json({ error: 'Week not found.' });
+  }
+
+  const fields = [];
+  const values = [];
+  if (req.body.name !== undefined) {
+    const name = clean(req.body.name, 120);
+    if (!name) return res.status(400).json({ error: 'Please give this week a name.' });
+    fields.push('name = ?');
+    values.push(name);
+  }
+  if (req.body.note !== undefined) {
+    fields.push('note = ?');
+    values.push(clean(req.body.note, 255));
+  }
+  if (!fields.length) return res.status(400).json({ error: 'Nothing to update.' });
+
+  values.push(id);
+  const [result] = await getPool().query(
+    `UPDATE sessions SET ${fields.join(', ')} WHERE id = ?`,
+    values,
+  );
+  if (!result.affectedRows) return res.status(404).json({ error: 'Week not found.' });
+
+  const [rows] = await getPool().query(
+    'SELECT id, name, scope, week_start, week_end, note FROM sessions WHERE id = ?',
+    [id],
+  );
+  res.json(rows[0]);
+});
+
 app.delete('/api/sessions/:id', async (req, res) => {
   const id = Number(req.params.id);
   if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid week.' });

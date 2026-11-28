@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api, isLocalOnly } from './api';
+import { checkForAppUpdate } from './pwa-updates';
 import { useCurrency } from './currency';
 import { useScope } from './scope';
 import CurrencySelect from './components/CurrencySelect';
@@ -97,6 +98,7 @@ export default function App() {
     };
     const goOnline = async () => {
       setOnline(true);
+      checkForAppUpdate();
       setSyncMessage('Syncing your changes…');
       try {
         const result = await api.flushQueue();
@@ -178,6 +180,13 @@ export default function App() {
       setModal(null);
     });
 
+  const handleUpdateSession = (form) =>
+    run(async () => {
+      await api.updateSession(modal.session.id, form);
+      await loadSessions();
+      setModal(null);
+    });
+
   const handleDeleteSession = (session) => {
     if (!window.confirm(`Delete "${session.name}" and all of its expenses?`)) return;
     run(async () => {
@@ -204,6 +213,7 @@ export default function App() {
         selectedId={selectedId}
         onSelect={setSelectedId}
         onNewSession={() => setModal({ type: 'session' })}
+        onRenameSession={(session) => setModal({ type: 'rename-session', session })}
         onDeleteSession={handleDeleteSession}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -339,6 +349,14 @@ export default function App() {
       )}
       {modal?.type === 'session' && (
         <SessionModal busy={busy} onClose={() => setModal(null)} onSubmit={handleCreateSession} />
+      )}
+      {modal?.type === 'rename-session' && (
+        <SessionModal
+          session={modal.session}
+          busy={busy}
+          onClose={() => setModal(null)}
+          onSubmit={handleUpdateSession}
+        />
       )}
     </div>
   );
