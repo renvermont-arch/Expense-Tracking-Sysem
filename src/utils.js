@@ -50,3 +50,8 @@ export function addDays(date, days) {
 export function weekLabel(date) {
   return `Week of ${formatDate(isoDate(date))}`;
 }
+
+// ISO dates sort correctly as strings, so this works in any timezone.
+export function hasWeekEnded(week) {
+  return Boolean(week?.week_end) && week.week_end < isoDate(new Date());
+}

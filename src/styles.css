@@ -327,6 +327,23 @@ h1, h2, h3, p { margin: 0; }
 .budget-foot { display: flex; justify-content: space-between; gap: 12px; margin-top: 8px; color: var(--muted); font-size: 11.5px; font-weight: 700; }
 .budget-empty { margin-top: 10px; color: var(--muted); font-size: 13px; }
 
+/* ------------------------------ week wrap-up ----------------------------- */
+
+.week-wrapup { margin-top: 18px; padding: 22px 24px; border: 1px solid #cfeade; border-radius: 22px; background: linear-gradient(135deg, #e6f7ef, #f9fffb); box-shadow: var(--shadow); }
+.week-wrapup.is-over { border-color: #ffd3c8; background: linear-gradient(135deg, #fff1ec, #fffaf8); }
+.wrapup-head { display: flex; align-items: center; gap: 12px; }
+.wrapup-icon { width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center; border-radius: 14px; background: #fff; color: #4f9d81; }
+.week-wrapup.is-over .wrapup-icon { color: var(--coral-dark); }
+.wrapup-head h2 { font-size: 17px; font-weight: 800; }
+.wrapup-head p { margin-top: 2px; color: var(--muted); font-size: 12px; }
+.wrapup-amount-block { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+.wrapup-amount-block span { color: #4f9d81; font-size: 12px; font-weight: 800; letter-spacing: 0.6px; text-transform: uppercase; }
+.week-wrapup.is-over .wrapup-amount-block span { color: var(--coral-dark); }
+.wrapup-amount-block strong { color: #2f7b61; font-size: 34px; letter-spacing: -1px; line-height: 1.2; }
+.week-wrapup.is-over .wrapup-amount-block strong { color: var(--coral-dark); }
+.wrapup-note { margin-top: 5px; color: var(--muted); font-size: 12.5px; }
+.wrapup-empty { margin-top: 12px; color: var(--muted); font-size: 13px; }
+
 /* -------------------------------- stats -------------------------------- */
 
 .stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 18px; }
@@ -520,6 +537,8 @@ h1, h2, h3, p { margin: 0; }
   .spark-bars, .spark-empty { width: 100%; }
   .budget-card { padding: 15px 16px; border-radius: 18px; }
   .budget-amounts strong { font-size: 22px; }
+  .week-wrapup { padding: 16px; border-radius: 18px; }
+  .wrapup-amount-block strong { font-size: 28px; }
   .scope-tab { padding: 5px 9px; }
   .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
   .stat-card { min-height: 0; padding: 13px 10px; border-radius: 15px; }

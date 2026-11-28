@@ -11,6 +11,7 @@ import SessionModal from './components/SessionModal';
 import Sidebar from './components/Sidebar';
 import ScopeTabs from './components/ScopeTabs';
 import SummaryCards from './components/SummaryCards';
+import WeekWrapUp from './components/WeekWrapUp';
 
 export default function App() {
   const [sessions, setSessions] = useState([]);
@@ -326,6 +327,9 @@ export default function App() {
               onEdit={(expense) => setModal({ type: 'edit', expense })}
               onDelete={handleDeleteExpense}
             />
+            {selected && !weekLoading && (
+              <WeekWrapUp week={selected} spent={summary?.total || 0} />
+            )}
           </div>
         )}
       </main>

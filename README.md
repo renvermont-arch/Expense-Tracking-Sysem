@@ -13,6 +13,7 @@ Track purchases per **weekly session**, see each item's details, category breakd
 - Live total preview while filling in the form (quantity × unit price)
 - Edit and delete expenses; delete weeks
 - Set a **weekly budget** for each week. The dashboard shows how much is left, a progress bar, and an over-budget warning; it updates as soon as you add, edit, or delete an expense.
+- Once a week's end date passes, a wrap-up card at the bottom of that week shows the **money saved** (budget minus spending), or how far over budget you went.
 - Dashboard shows total spent, item count, average, biggest purchase, per-category bars, spending-day bars, and a Purchases list that shows only the newest purchase until you expand the scrollable full list grouped by date
 - Phone-friendly pastel UI with touch-sized buttons, a slide-out weeks drawer, and bottom-sheet forms
 - **Installable PWA** with a service worker, app icon, and offline support: previously viewed weeks/data open without a connection, and changes you make offline are saved on the device and synced automatically when you reconnect
